@@ -1,0 +1,59 @@
+Table fazenda {
+  id_fazenda int [primary key]
+  nome_fazenda varchar(255) [not null]
+  id_cidade int [not null]
+}
+
+Table cidade {
+  id_cidade int [primary key]
+  nome_cidade varchar(255) [not null]
+  id_estado int [not null]
+}
+
+Table estado {
+  id_estado int [primary key]
+  nome_estado varchar(255) [not null]
+}
+
+Table cultura {
+  id_cultura int [primary key]
+  nome_cultura varchar(255) [not null]
+}
+
+Table safra {
+  id_safra int [primary key]
+  id_fazenda int [not null]
+  id_cultura int [not null]
+  ano_safra int [not null]
+  qtd_colhida_sacas decimal(12,2) [not null]
+}
+
+Table comprador {
+  id_comprador int [primary key]
+  nome_comprador varchar(255) [not null]
+  tipo_empresa varchar(255) [not null]
+  id_cidade int [not null]
+}
+
+Table venda {
+  id_venda int [primary key]
+  id_safra int [not null]
+  id_comprador int [not null]
+  preco_por_saca decimal(10,2) [not null]
+  qtd_vendida_sacas decimal(12,2) [not null]
+  data_venda date [not null]
+}
+
+Ref: "cidade"."id_estado" ?> "estado"."id_estado"
+
+Ref: "cidade"."id_cidade" <? "fazenda"."id_cidade"
+
+Ref: "cultura"."id_cultura" <? "safra"."id_cultura"
+
+Ref: "cidade"."id_cidade" <? "comprador"."id_cidade"
+
+Ref: "fazenda"."id_fazenda" <? "safra"."id_fazenda"
+
+Ref: "comprador"."id_comprador" <? "venda"."id_comprador"
+
+Ref: "safra"."id_safra" <? "venda"."id_safra"
