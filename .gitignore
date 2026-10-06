@@ -1,0 +1,23 @@
+# Segredos
+.env
+.env.*
+*.pem
+*.key
+
+# Dumps e backups de banco
+*.dump
+*.bak
+*.sql.gz
+dump*.sql
+backup*.sql
+
+# Dados reais (nunca versionar)
+dados_reais/
+
+# Logs
+*.log
+
+# Editor e sistema
+.vscode/
+.idea/
+.DS_Store
