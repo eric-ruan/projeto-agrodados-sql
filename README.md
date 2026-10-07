@@ -125,3 +125,6 @@ CREATE TABLE venda (
     CONSTRAINT chk_venda_qtd CHECK (qtd_vendida_sacas > 0)
 );
 ```
+
+## Inserindo dados na tabela
+Eu pedi para a IA Claude da Anthropic gerar um arquivo sql para mim com dados fictícios para inserir no banco. Ela gerou 500 registros para cada tabela, com exceção da tabela *estado* que são os estados oficiais do Brasil e *cultura* que nomes de culturas que realmente existem. O arquivo está localizado em: [`sql/02_dados_ficticios.sql`](sql/02_dados_ficticios.sql).
