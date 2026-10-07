@@ -128,3 +128,158 @@ CREATE TABLE venda (
 
 ## Inserindo dados na tabela
 Eu pedi para a IA Claude da Anthropic gerar um arquivo sql para mim com dados fictícios para inserir no banco. Ela gerou 500 registros para cada tabela, com exceção da tabela *estado* que são os estados oficiais do Brasil e *cultura* que nomes de culturas que realmente existem. O arquivo está localizado em: [`sql/02_dados_ficticios.sql`](sql/02_dados_ficticios.sql).
+
+## Iniciando a Análise dos dados
+Segue o arquivo completo: [`sql/03_analise_dos_dados.sql`](sql/03_analise_dos_dados.sql)
+
+Eu pedi para a IA Claude montar 10 exercícios para eu resolver, baseado nos dados que foram gerados. A partir desses exercícios eu consegui realizar uma análise dos dados e obter alguns insights, segue abaixo a minha análise:
+
+## Receita
+1. Quanto o sistema faturou no total, em cada ano de venda?
+```sql
+SELECT
+    YEAR(data_venda) AS ano,
+    ROUND(SUM(v.preco_por_saca * v.qtd_vendida_sacas)) AS total
+FROM venda AS v
+GROUP BY YEAR(v.data_venda)
+ORDER BY YEAR(v.data_venda) ASC;
+```
+
+2. Quais são as 10 fazendas que mais faturaram?
+```sql
+SELECT
+    f.nome_fazenda AS nome,
+    ROUND(SUM(v.preco_por_saca * v.qtd_vendida_sacas), 2) AS faturamento
+FROM fazenda AS f
+INNER JOIN safra AS s
+    ON s.id_fazenda = f.id_fazenda
+INNER JOIN venda AS v
+    ON v.id_safra = s.id_safra
+GROUP BY nome
+ORDER BY faturamento DESC
+LIMIT 10;
+```
+
+3. Qual cultura gera mais receita? E qual tem o maior preço médio por saca?
+```sql
+SELECT
+    c.nome_cultura,
+    ROUND(SUM(v.preco_por_saca * v.qtd_vendida_sacas), 2) AS faturamento,
+    ROUND(AVG(v.preco_por_saca), 2) AS preco_medio 
+FROM cultura AS c
+INNER JOIN safra AS s
+    ON c.id_cultura = s.id_cultura
+INNER JOIN venda AS v
+    ON v.id_safra = s.id_safra
+GROUP BY nome_cultura
+ORDER BY preco_medio DESC;
+```
+
+4. Qual é a participação de cada estado na receita total, em %?
+```sql
+SELECT
+    e.nome_estado,
+    ROUND(
+        SUM(v.preco_por_saca * v.qtd_vendida_sacas) / (
+            SELECT SUM(v.preco_por_saca * v.qtd_vendida_sacas) FROM venda AS v
+        ) * 100, 2
+    ) AS percentual_venda
+FROM venda AS v
+INNER JOIN comprador AS c
+    ON v.id_comprador = c.id_comprador
+INNER JOIN cidade AS cid
+    ON cid.id_cidade = c.id_cidade
+INNER JOIN estado AS e
+    ON e.id_estado = cid.id_estado
+GROUP BY e.nome_estado
+ORDER BY percentual_venda DESC;
+```
+
+## Buracos nos dados
+5. Quais fazendas nunca registraram uma safra?
+```sql
+SELECT
+    f.nome_fazenda,
+    s.id_cultura
+FROM fazenda AS f
+LEFT JOIN safra AS s
+    ON f.id_fazenda = s.id_fazenda
+WHERE s.id_safra IS NULL
+ORDER BY f.nome_fazenda ASC;
+```
+
+6. Quais compradores nunca compraram nada?
+```sql
+SELECT
+    c.nome_comprador,
+    c.tipo_empresa,
+    v.id_venda
+FROM comprador AS c
+LEFT JOIN venda AS v
+    ON c.id_comprador = v.id_comprador
+WHERE v.id_comprador IS NULL
+ORDER BY c.nome_comprador ASC;
+```
+
+7. Quais safras foram colhidas mas ainda não tiveram nenhuma venda?
+```sql
+SELECT
+    s.id_safra,
+    s.id_fazenda,
+    v.id_venda
+FROM safra AS s
+LEFT JOIN venda AS v
+    ON s.id_safra = v.id_safra
+WHERE v.id_venda IS NULL
+ORDER BY s.id_safra ASC;
+```
+
+8. Há estados sem nenhuma fazenda cadastrada?
+```sql
+SELECT
+    e.id_estado,
+    COUNT(f.id_fazenda) AS qtd_faz_por_estado
+FROM estado AS e
+LEFT JOIN cidade AS c
+    ON e.id_estado = c.id_estado
+LEFT JOIN fazenda AS f
+    ON c.id_cidade = f.id_cidade
+GROUP BY e.id_estado
+HAVING qtd_faz_por_estado = 0;
+```
+
+## Estoque e produtividade
+9. De cada safra, quantas sacas ainda não foram vendidas?
+```sql
+SELECT
+    s.id_safra,
+    c.nome_cultura,
+    (MAX(s.qtd_colhida_sacas) - COALESCE(SUM(v.qtd_vendida_sacas), 0)) AS qtd_nao_vendidas
+FROM safra AS s
+LEFT JOIN venda AS v
+    ON v.id_safra = s.id_safra
+LEFT JOIN cultura AS c
+    ON s.id_cultura = c.id_cultura
+GROUP BY s.id_safra
+ORDER BY qtd_nao_vendidas ASC;
+```
+
+10. Quais safras já venderam mais de 70% do que colheram?
+```sql
+SELECT
+    s.id_safra,
+    c.nome_cultura,
+    MAX(s.qtd_colhida_sacas) AS total_colhido,
+    SUM(v.qtd_vendida_sacas) AS total_vendido,
+    (SUM(v.qtd_vendida_sacas) * 100.0 / MAX(s.qtd_colhida_sacas)) AS percentual_vendido
+FROM safra AS s
+INNER JOIN venda AS v
+    ON v.id_safra = s.id_safra
+INNER JOIN cultura AS c
+    ON s.id_cultura = c.id_cultura
+GROUP BY s.id_safra
+HAVING SUM(v.qtd_vendida_sacas) > (MAX(s.qtd_colhida_sacas) * 0.70)
+ORDER BY percentual_vendido ASC;
+```
+
+**Com esses 10 exercícios a análise dos dados foi concluída.**
