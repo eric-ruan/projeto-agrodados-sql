@@ -20,9 +20,20 @@ ORDER BY faturamento DESC
 LIMIT 10;
 
 -- 3. Qual cultura gera mais receita? E qual tem o maior preço médio por saca?
+-- Cultura com mais receita:
+SELECT c.nome_cultura,
+       ROUND(SUM(v.preco_por_saca * v.qtd_vendida_sacas), 2) AS faturamento
+FROM cultura AS c
+INNER JOIN safra AS s
+    ON c.id_cultura = s.id_cultura
+INNER JOIN venda AS v
+    ON v.id_safra = s.id_safra
+GROUP BY c.nome_cultura
+ORDER BY faturamento DESC;
+
+-- Cultura com maior preço médio:
 SELECT
     c.nome_cultura,
-    ROUND(SUM(v.preco_por_saca * v.qtd_vendida_sacas), 2) AS faturamento,
     ROUND(AVG(v.preco_por_saca), 2) AS preco_medio 
 FROM cultura AS c
 INNER JOIN safra AS s
